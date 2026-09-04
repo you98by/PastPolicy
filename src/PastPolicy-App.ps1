@@ -92,6 +92,14 @@ function Get-UserPolicyState {
         }
         $domainPath = "Registry::HKEY_USERS\$Sid\Software\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Domains"
         $state['BlockedURLs'] = @(if (Test-Path -LiteralPath $domainPath) { Get-ChildItem -LiteralPath $domainPath -ErrorAction SilentlyContinue | ForEach-Object { $property = Get-ItemProperty -LiteralPath $_.PSPath -ErrorAction SilentlyContinue; if ($property.'*' -eq 4) { $_.PSChildName } } })
+            $edgePolicyPath = "Registry::HKEY_USERS\$Sid\Software\Policies\Microsoft\Edge"
+            foreach ($list in @(@('EdgeURLBlockList', 'URLBlocklist'), @('EdgeURLAllowList', 'URLAllowlist'))) {
+                $values = @()
+                $listPath = Join-Path $edgePolicyPath $list[1]
+                $edgeProperties = Get-ItemProperty -LiteralPath $listPath -ErrorAction SilentlyContinue
+                if ($edgeProperties) { $values = @($edgeProperties.PSObject.Properties | Where-Object { $_.Name -match '^\d+$' -and $_.Value -is [string] } | Sort-Object { [int]$_.Name } | ForEach-Object Value) }
+                $state[$list[0]] = $values
+            }
         $disallowPath = "Registry::HKEY_USERS\$Sid\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\DisallowRun"
         $disallow = Get-ItemProperty -LiteralPath $disallowPath -ErrorAction SilentlyContinue
         $state['BlockBrowsers'] = @($disallow.PSObject.Properties | Where-Object { $_.Value -in $script:BrowserExecutables }).Count -gt 0
@@ -115,6 +123,19 @@ function Set-UserPolicyState {
             $domain = ([string]$url).Trim() -replace '^https?://', '' -replace '/.*$', ''
             if ($domain) { $domainPath = Join-Path $domainBase $domain; [void](New-Item -Path $domainPath -Force); Set-ItemProperty -LiteralPath $domainPath -Name '*' -Value 4 -Type DWord -Force }
         }
+            $edgePolicyPath = "Registry::HKEY_USERS\$Sid\Software\Policies\Microsoft\Edge"
+            if (-not (Test-Path -LiteralPath $edgePolicyPath)) { [void](New-Item -Path $edgePolicyPath -Force) }
+            foreach ($list in @(@('EdgeURLBlockList', 'URLBlocklist'), @('EdgeURLAllowList', 'URLAllowlist'))) {
+                $listPath = Join-Path $edgePolicyPath $list[1]
+                if (-not (Test-Path -LiteralPath $listPath)) { [void](New-Item -Path $listPath -Force) }
+                $existing = Get-ItemProperty -LiteralPath $listPath -ErrorAction SilentlyContinue
+                foreach ($property in @($existing.PSObject.Properties | Where-Object { $_.Name -match '^\d+$' })) { Remove-ItemProperty -LiteralPath $listPath -Name $property.Name -Force }
+                $index = 1
+                foreach ($url in @($State[$list[0]])) {
+                    $value = ([string]$url).Trim()
+                    if ($value) { Set-ItemProperty -LiteralPath $listPath -Name "$index" -Value $value -Type String -Force; $index++ }
+                }
+            }
         # Explorer's DisallowRun supports per-user browser restrictions. Edge is deliberately excluded.
         $disallowPath = "Registry::HKEY_USERS\$Sid\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\DisallowRun"
         if (-not (Test-Path -LiteralPath $disallowPath)) { [void](New-Item -Path $disallowPath -Force) }
@@ -161,6 +182,7 @@ function Load-CurrentState($ComboBox) {
     $user = Get-SelectedUser $ComboBox; if (-not $user) { return }; $state = Get-UserPolicyState $user.SID.ToString() $user.Name; if (-not $state) { return }
     foreach ($policy in $script:Policies) { $script:CheckBoxes[$policy.Name].Checked = [bool]$state[$policy.Name] }
     $urlBox = $script:content.Controls.Find('BlockedUrls', $true) | Select-Object -First 1; if ($urlBox) { $urlBox.Text = @($state['BlockedURLs']) -join "`r`n" }
+        foreach ($list in @('EdgeURLBlockList', 'EdgeURLAllowList')) { $listBox = $script:content.Controls.Find($list, $true) | Select-Object -First 1; if ($listBox) { $listBox.Text = @($state[$list]) -join "`r`n" } }
     $browserBox = $script:content.Controls.Find('BlockBrowsers', $true) | Select-Object -First 1; if ($browserBox) { $browserBox.Checked = [bool]$state['BlockBrowsers'] }
 }
 
@@ -170,12 +192,14 @@ function Get-WorkspaceState {
     $urlBox = $script:content.Controls.Find('BlockedUrls', $true) | Select-Object -First 1
     $browserBox = $script:content.Controls.Find('BlockBrowsers', $true) | Select-Object -First 1
     $state['BlockedURLs'] = @($urlBox.Lines | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+        foreach ($list in @('EdgeURLBlockList', 'EdgeURLAllowList')) { $listBox = $script:content.Controls.Find($list, $true) | Select-Object -First 1; $state[$list] = @($listBox.Lines | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
     $state['BlockBrowsers'] = [bool]$browserBox.Checked
     return $state
 }
 function Set-WorkspaceState($State) {
     foreach ($policy in $script:Policies) { $script:CheckBoxes[$policy.Name].Checked = [bool]$State.($policy.Name) }
     ($script:content.Controls.Find('BlockedUrls', $true) | Select-Object -First 1).Text = @($State.BlockedURLs) -join "`r`n"
+    foreach ($list in @('EdgeURLBlockList', 'EdgeURLAllowList')) { ($script:content.Controls.Find($list, $true) | Select-Object -First 1).Text = @($State.$list) -join "`r`n" }
     ($script:content.Controls.Find('BlockBrowsers', $true) | Select-Object -First 1).Checked = [bool]$State.BlockBrowsers
 }
 function Save-Configuration {
@@ -201,6 +225,9 @@ function Show-PolicyWorkspace {
     }
     $urlLabel = New-Object Windows.Forms.Label; $urlLabel.Text = 'Blocked websites (one per line)'; $urlLabel.AutoSize = $true; $urlLabel.Font = New-Object Drawing.Font('Segoe UI', 11, [Drawing.FontStyle]::Bold); [void](Add-ContentControl $urlLabel)
     $urlBox = New-Object Windows.Forms.TextBox; $urlBox.Name = 'BlockedUrls'; $urlBox.Multiline = $true; $urlBox.ScrollBars = 'Vertical'; $urlBox.Height = 100; $urlBox.BackColor = $script:BtnBG; $urlBox.ForeColor = $script:Text; $urlBox.Font = New-Object Drawing.Font('Consolas', 10); [void](Add-ContentControl $urlBox)
+        $edgeLabel = New-Object Windows.Forms.Label; $edgeLabel.Text = 'Edge URL Block and Allow List (one per line)'; $edgeLabel.AutoSize = $true; $edgeLabel.Font = New-Object Drawing.Font('Segoe UI', 11, [Drawing.FontStyle]::Bold); [void](Add-ContentControl $edgeLabel)
+        $edgeBoxBlock = New-Object Windows.Forms.TextBox; $edgeBoxBlock.Name = 'EdgeURLBlockList'; $edgeBoxBlock.Multiline = $true; $edgeBoxBlock.ScrollBars = 'Vertical'; $edgeBoxBlock.Height = 100; $edgeBoxBlock.BackColor = $script:BtnBG; $edgeBoxBlock.ForeColor = $script:Text; $edgeBoxBlock.Font = New-Object Drawing.Font('Consolas', 10); [void](Add-ContentControl $edgeBoxBlock)
+        $edgeBoxAllow = New-Object Windows.Forms.TextBox; $edgeBoxAllow.Name = 'EdgeURLAllowList'; $edgeBoxAllow.Multiline = $true; $edgeBoxAllow.ScrollBars = 'Vertical'; $edgeBoxAllow.Height = 100; $edgeBoxAllow.BackColor = $script:BtnBG; $edgeBoxAllow.ForeColor = $script:Text; $edgeBoxAllow.Font = New-Object Drawing.Font('Consolas', 10); [void](Add-ContentControl $edgeBoxAllow)
     $browserBox = New-Object Windows.Forms.CheckBox; $browserBox.Name = 'BlockBrowsers'; $browserBox.Text = 'Block common browsers for this user (Chrome, Firefox, Brave, Opera, Vivaldi, Internet Explorer) — Edge remains allowed'; $browserBox.AutoSize = $true; $browserBox.ForeColor = $script:Text; [void](Add-ContentControl $browserBox)
     $actions = New-Object Windows.Forms.FlowLayoutPanel; $actions.AutoSize = $true; $actions.WrapContents = $false; $actions.FlowDirection = 'LeftToRight'; $actions.Dock = 'Top'
     $apply = New-Button 'Apply Changes' { $user = Get-SelectedUser $script:workspaceCombo; if (-not $user) { [Windows.Forms.MessageBox]::Show('Select a target user first.'); return }; try { Set-UserPolicyState $user.SID.ToString() $user.Name (Get-WorkspaceState); Write-Log "Policies applied to $($user.Name)." 'Green' } catch { Write-Log $_.Exception.Message 'Red' } }
@@ -217,7 +244,7 @@ function Show-RestoreDialog($ComboBox) {
     [void]$layout.ColumnStyles.Add((New-Object Windows.Forms.ColumnStyle([Windows.Forms.SizeType]::Percent, 100))); [void]$layout.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::AutoSize))); [void]$layout.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::Percent, 100))); [void]$layout.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::AutoSize)))
     $label = New-Object Windows.Forms.Label; $label.Text = "Select a backup for $($user.Name)"; $label.AutoSize = $true
     $list = New-Object Windows.Forms.ListBox; $list.Dock = 'Fill'; $list.BackColor = $script:BtnBG; $list.ForeColor = $script:Text; foreach ($backup in $backups) { [void]$list.Items.Add($backup.Name) }
-    $ok = New-Button 'Restore' { if (-not $list.SelectedItem) { return }; $json = Join-Path (Join-Path $script:workDir 'States') "$($list.SelectedItem)\policy_snapshot.json"; if (-not (Test-Path $json)) { return }; $snapshot = Get-Content $json -Raw | ConvertFrom-Json; $saved = $snapshot.PSObject.Properties[$user.Name].Value; if (-not $saved) { Write-Log "User $($user.Name) not found in backup." 'Red'; return }; $state = @{}; foreach ($policy in $script:Policies) { $state[$policy.Name] = [bool]$saved.($policy.Name) }; $state['BlockedURLs'] = @($saved.BlockedURLs); try { Set-UserPolicyState $user.SID.ToString() $user.Name $state; Write-Log "Restored state for $($user.Name)." 'Green'; Load-CurrentState $ComboBox } catch { Write-Log $_.Exception.Message 'Red' }; $dialog.Close() }
+    $ok = New-Button 'Restore' { if (-not $list.SelectedItem) { return }; $json = Join-Path (Join-Path $script:workDir 'States') "$($list.SelectedItem)\policy_snapshot.json"; if (-not (Test-Path $json)) { return }; $snapshot = Get-Content $json -Raw | ConvertFrom-Json; $saved = $snapshot.PSObject.Properties[$user.Name].Value; if (-not $saved) { Write-Log "User $($user.Name) not found in backup." 'Red'; return }; $state = @{}; foreach ($policy in $script:Policies) { $state[$policy.Name] = [bool]$saved.($policy.Name) }; $state['BlockedURLs'] = @($saved.BlockedURLs); $state['EdgeURLBlockList'] = @($saved.EdgeURLBlockList); $state['EdgeURLAllowList'] = @($saved.EdgeURLAllowList); try { Set-UserPolicyState $user.SID.ToString() $user.Name $state; Write-Log "Restored state for $($user.Name)." 'Green'; Load-CurrentState $ComboBox } catch { Write-Log $_.Exception.Message 'Red' }; $dialog.Close() }
     $buttonRow = New-Object Windows.Forms.FlowLayoutPanel; $buttonRow.FlowDirection = 'RightToLeft'; $buttonRow.Dock = 'Fill'; [void]$buttonRow.Controls.Add($ok)
     [void]$layout.Controls.Add($label, 0, 0); [void]$layout.Controls.Add($list, 0, 1); [void]$layout.Controls.Add($buttonRow, 0, 2); [void]$dialog.Controls.Add($layout); [void]$dialog.ShowDialog($form)
 }
@@ -227,7 +254,7 @@ function Show-Logs { Clear-Content; [void](New-PageTitle 'Live Logs'); $text = N
 
 function Use-Preset([string]$Name) {
     Show-PolicyWorkspace
-    $state = @{}; foreach ($policy in $script:Policies) { $state[$policy.Name] = $false }; $state['BlockedURLs'] = @(); $state['BlockBrowsers'] = $false
+    $state = @{}; foreach ($policy in $script:Policies) { $state[$policy.Name] = $false }; $state['BlockedURLs'] = @(); $state['EdgeURLBlockList'] = @(); $state['EdgeURLAllowList'] = @(); $state['BlockBrowsers'] = $false
     switch ($Name) {
         'Focused workstation' { foreach ($policy in @('Disable Task Manager','Disable Registry Editor','Disable Command Prompt','Disable Control Panel','Disable Run Command','Disable Taskbar Context Menu')) { $state[$policy] = $true }; $state['BlockBrowsers'] = $true }
         'Privacy' { foreach ($policy in @('Disable Location','Disable Advertising ID','Disable Tailored Experiences','Disable Windows Consumer Features','Edge: Block third-party cookies')) { $state[$policy] = $true } }

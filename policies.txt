@@ -36,3 +36,62 @@ Edge: Block third-party cookies | Software\Policies\Microsoft\Edge | BlockThirdP
 Edge: Disable developer tools | Software\Policies\Microsoft\Edge | DeveloperToolsAvailability | 2 | 0 | Microsoft Edge
 Edge: Disable printing | Software\Policies\Microsoft\Edge | PrintingEnabled | 0 | 1 | Microsoft Edge
 Edge: Disable password reveal | Software\Policies\Microsoft\Edge | PasswordRevealEnabled | 0 | 1 | Microsoft Edge
+
+# Edge URLBlockList and URLAllowList are managed as multiline fields in the Policy Workspace.
+Edge: Enable web content filtering | Software\Policies\Microsoft\Edge | WebContentFilteringEnabled | 1 | 0 | Microsoft Edge
+Edge: Block insecure content | Software\Policies\Microsoft\Edge | DefaultInsecureContentSetting | 2 | 1 | Microsoft Edge
+Edge: Block automatic downloads | Software\Policies\Microsoft\Edge | AutomaticDownloadsAllowed | 0 | 1 | Microsoft Edge
+Edge: Disable guest mode | Software\Policies\Microsoft\Edge | BrowserGuestModeEnabled | 0 | 1 | Microsoft Edge
+Edge: Disable profile sign-in | Software\Policies\Microsoft\Edge | BrowserSignin | 0 | 1 | Microsoft Edge
+Edge: Disable sync | Software\Policies\Microsoft\Edge | SyncDisabled | 1 | 0 | Microsoft Edge
+Edge: Disable translation | Software\Policies\Microsoft\Edge | TranslateEnabled | 0 | 1 | Microsoft Edge
+Edge: Disable shopping features | Software\Policies\Microsoft\Edge | EdgeShoppingAssistantEnabled | 0 | 1 | Microsoft Edge
+Edge: Disable Math Solver | Software\Policies\Microsoft\Edge | MathSolverEnabled | 0 | 1 | Microsoft Edge
+Edge: Open PDFs externally | Software\Policies\Microsoft\Edge | AlwaysOpenPdfExternally | 1 | 0 | Microsoft Edge
+Edge: Disable games | Software\Policies\Microsoft\Edge | AllowGames | 0 | 1 | Microsoft Edge
+Edge: Disable save page | Software\Policies\Microsoft\Edge | SavePageAsEnabled | 0 | 1 | Microsoft Edge
+Edge: Disable search suggestions | Software\Policies\Microsoft\Edge | SearchSuggestEnabled | 0 | 1 | Microsoft Edge
+Edge: Disable password import | Software\Policies\Microsoft\Edge | ImportSavedPasswords | 0 | 1 | Microsoft Edge
+Edge: Disable favorites bar | Software\Policies\Microsoft\Edge | FavoritesBarEnabled | 0 | 1 | Microsoft Edge
+Edge: Disable sidebar | Software\Policies\Microsoft\Edge | HubsSidebarEnabled | 0 | 1 | Microsoft Edge
+Edge: Disable vertical tabs | Software\Policies\Microsoft\Edge | VerticalTabsAllowed | 0 | 1 | Microsoft Edge
+Edge: Disable startup boost | Software\Policies\Microsoft\Edge | StartupBoostEnabled | 0 | 1 | Microsoft Edge
+Edge: Disable background mode | Software\Policies\Microsoft\Edge | BackgroundModeEnabled | 0 | 1 | Microsoft Edge
+Edge: Disable feedback | Software\Policies\Microsoft\Edge | UserFeedbackAllowed | 0 | 1 | Microsoft Edge
+Edge: Block geolocation | Software\Policies\Microsoft\Edge | DefaultGeolocationSetting | 2 | 1 | Microsoft Edge
+Edge: Block camera access | Software\Policies\Microsoft\Edge | VideoCaptureAllowed | 0 | 1 | Microsoft Edge
+Edge: Block microphone access | Software\Policies\Microsoft\Edge | AudioCaptureAllowed | 0 | 1 | Microsoft Edge
+Edge: Block JavaScript | Software\Policies\Microsoft\Edge | DefaultJavaScriptSetting | 2 | 1 | Microsoft Edge
+Edge: Block images | Software\Policies\Microsoft\Edge | DefaultImagesSetting | 2 | 1 | Microsoft Edge
+Edge: Block cookies | Software\Policies\Microsoft\Edge | DefaultCookiesSetting | 2 | 1 | Microsoft Edge
+Edge: Block USB device access | Software\Policies\Microsoft\Edge | DefaultWebUsbGuardSetting | 2 | 1 | Microsoft Edge
+Edge: Block serial port access | Software\Policies\Microsoft\Edge | DefaultSerialGuardSetting | 2 | 1 | Microsoft Edge
+Edge: Block Bluetooth access | Software\Policies\Microsoft\Edge | DefaultWebBluetoothGuardSetting | 2 | 1 | Microsoft Edge
+Edge: Block sensors | Software\Policies\Microsoft\Edge | SensorsAllowed | 0 | 1 | Microsoft Edge
+Edge: Block clipboard access | Software\Policies\Microsoft\Edge | DefaultClipboardSetting | 2 | 1 | Microsoft Edge
+Edge: Block fullscreen | Software\Policies\Microsoft\Edge | DefaultFullscreenSetting | 2 | 1 | Microsoft Edge
+Edge: Disable media autoplay | Software\Policies\Microsoft\Edge | AutoplayAllowed | 0 | 1 | Microsoft Edge
+Edge: Strict tracking prevention | Software\Policies\Microsoft\Edge | TrackingPrevention | 3 | 1 | Microsoft Edge
+Edge: Disable Microsoft Rewards | Software\Policies\Microsoft\Edge | ShowMicrosoftRewards | 0 | 1 | Microsoft Edge
+
+Windows: Disable Windows Script Host | Software\Microsoft\Windows Script Host\Settings | Enabled | 0 | 1 | Windows
+Windows: Disable Windows error reporting | Software\Microsoft\Windows\Windows Error Reporting | Disabled | 1 | 0 | Windows
+Windows: Disable consumer app installation | Software\Policies\Microsoft\Windows\CloudContent | DisableWindowsConsumerFeatures | 1 | 0 | Windows
+Windows: Disable lock screen | Software\Policies\Microsoft\Windows\Personalization | NoLockScreen | 1 | 0 | Windows
+Windows: Disable Windows tips | Software\Policies\Microsoft\Windows\CloudContent | DisableSoftLanding | 1 | 0 | Windows
+Windows: Disable activity history | Software\Policies\Microsoft\Windows\System | EnableActivityFeed | 0 | 1 | Windows
+Windows: Disable publishing user activities | Software\Policies\Microsoft\Windows\System | PublishUserActivities | 0 | 1 | Windows
+Windows: Disable uploading user activities | Software\Policies\Microsoft\Windows\System | UploadUserActivities | 0 | 1 | Windows
+Windows: Disable handwriting personalization | Software\Policies\Microsoft\Windows\TabletPC | PreventHandwritingDataSharing | 1 | 0 | Windows
+Windows: Disable camera access | Software\Policies\Microsoft\Windows\AppPrivacy | LetAppsAccessCamera | 2 | 0 | Windows
+Windows: Disable microphone access | Software\Policies\Microsoft\Windows\AppPrivacy | LetAppsAccessMicrophone | 2 | 0 | Windows
+Windows: Disable app diagnostics | Software\Policies\Microsoft\Windows\AppPrivacy | LetAppsGetDiagnosticInfo | 2 | 0 | Windows
+Windows: Disable account info access | Software\Policies\Microsoft\Windows\AppPrivacy | LetAppsAccessAccountInfo | 2 | 0 | Windows
+Windows: Disable contacts access | Software\Policies\Microsoft\Windows\AppPrivacy | LetAppsAccessContacts | 2 | 0 | Windows
+Windows: Disable calendar access | Software\Policies\Microsoft\Windows\AppPrivacy | LetAppsAccessCalendar | 2 | 0 | Windows
+Windows: Disable call history access | Software\Policies\Microsoft\Windows\AppPrivacy | LetAppsAccessCallHistory | 2 | 0 | Windows
+Windows: Disable email access | Software\Policies\Microsoft\Windows\AppPrivacy | LetAppsAccessEmail | 2 | 0 | Windows
+Windows: Disable tasks access | Software\Policies\Microsoft\Windows\AppPrivacy | LetAppsAccessTasks | 2 | 0 | Windows
+Windows: Disable notifications access | Software\Policies\Microsoft\Windows\AppPrivacy | LetAppsAccessNotifications | 2 | 0 | Windows
+Windows: Disable location access | Software\Policies\Microsoft\Windows\AppPrivacy | LetAppsAccessLocation | 2 | 0 | Windows
+Windows: Disable wireless device access | Software\Policies\Microsoft\Windows\AppPrivacy | LetAppsAccessRadios | 2 | 0 | Windows
