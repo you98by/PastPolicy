@@ -1,0 +1,10 @@
+# PastPolicy Configuration File
+# Format: Display Name | Registry Key Path | Value Name | Checked Value | Unchecked Value
+# Lines starting with # are ignored.
+
+Disable Task Manager | Software\Microsoft\Windows\CurrentVersion\Policies\System | DisableTaskMgr | 1 | 0
+Disable Registry Editor | Software\Microsoft\Windows\CurrentVersion\Policies\System | DisableRegistryTools | 1 | 0
+Disable Command Prompt | Software\Microsoft\Windows\CurrentVersion\Policies\System | DisableCMD | 2 | 0
+Disable Control Panel | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | NoControlPanel | 1 | 0
+Hide C: Drive | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | NoDrives | 4 | 0
+Disable Taskbar Context Menu | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | NoTrayContextMenu | 1 | 0
