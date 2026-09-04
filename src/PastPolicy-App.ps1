@@ -52,12 +52,24 @@ function Write-Log {
 function Get-LocalUsers { @(Get-LocalUser | Where-Object { $_.Enabled -and $_.Name -notin @('DefaultAccount', 'Guest', 'WDAGUtilityAccount') }) }
 
 $script:LoadedHives = [Collections.Generic.HashSet[string]]::new()
+function Get-UserProfilePath {
+    param([string]$Sid)
+    $profile = Get-CimInstance -ClassName Win32_UserProfile -Filter "SID='$Sid'" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($profile -and $profile.LocalPath) { return $profile.LocalPath }
+
+    $profileKey = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$Sid"
+    $profileValue = Get-ItemProperty -LiteralPath $profileKey -Name ProfileImagePath -ErrorAction SilentlyContinue
+    if ($profileValue -and $profileValue.ProfileImagePath) { return [Environment]::ExpandEnvironmentVariables($profileValue.ProfileImagePath) }
+    return $null
+}
+
 function Load-UserHive {
     param([string]$Sid, [string]$Username)
     $registryPath = "Registry::HKEY_USERS\$Sid"
     if (Test-Path -LiteralPath $registryPath) { return $true }
-    $ntUser = Join-Path "C:\Users\$Username" 'NTUSER.DAT'
-    if (-not (Test-Path -LiteralPath $ntUser)) { Write-Log "Profile hive not found for $Username." 'Yellow'; return $false }
+    $profilePath = Get-UserProfilePath $Sid
+    $ntUser = if ($profilePath) { Join-Path $profilePath 'NTUSER.DAT' } else { $null }
+    if (-not $ntUser -or -not (Test-Path -LiteralPath $ntUser)) { Write-Log "Profile hive not found for $Username." 'Yellow'; return $false }
     & reg.exe load "HKU\$Sid" $ntUser 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $registryPath)) { throw "Could not load the registry hive for $Username." }
     [void]$script:LoadedHives.Add($Sid); return $true

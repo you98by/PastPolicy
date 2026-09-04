@@ -1,6 +1,13 @@
 # PastPolicy Bootstrapper
 $ErrorActionPreference = 'Stop'
-$installDir = "$env:LOCALAPPDATA\PastPolicy"
+$currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+$principal = [Security.Principal.WindowsPrincipal]$currentIdentity
+if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Start-Process powershell.exe -Verb RunAs -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"")
+    exit
+}
+
+$installDir = 'C:\PastPolicy'
 $repoUrl = "https://github.com/you98by/PastPolicy/archive/refs/heads/main.zip"
 
 if (!(Test-Path "$installDir\src\PastPolicy-App.ps1")) {
