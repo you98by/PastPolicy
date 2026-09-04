@@ -49,7 +49,7 @@ $script:SidebarBG = [System.Drawing.ColorTranslator]::FromHtml("#252526")
 $script:Text = [System.Drawing.ColorTranslator]::FromHtml("#CCCCCC")
 $script:Accent = [System.Drawing.ColorTranslator]::FromHtml("#007ACC")
 $script:BtnBG = [System.Drawing.ColorTranslator]::FromHtml("#333333")
-$script:Error = [System.Drawing.ColorTranslator]::FromHtml("#F44747")
+$script:ErrorColor = [System.Drawing.ColorTranslator]::FromHtml("#F44747")
 $script:Success = [System.Drawing.ColorTranslator]::FromHtml("#4EC9B0")
 
 $form = New-Object System.Windows.Forms.Form
@@ -84,7 +84,7 @@ $form.Controls.Add($mainPanel)
 # ==========================================
 function Write-Log($msg, $color = "White") {
     $time = Get-Date -Format "HH:mm:ss"
-    $logBox.SelectionColor = switch ($color) { "Red" { $script:Error }; "Green" { $script:Success }; "Yellow" { "Yellow" } default { $script:Text } }
+    $logBox.SelectionColor = switch ($color) { "Red" { $script:ErrorColor }; "Green" { $script:Success }; "Yellow" { "Yellow" } default { $script:Text } }
     $logBox.AppendText("[$time] $msg`r`n"); $logBox.ScrollToCaret()
     Add-Content -Path "$script:workDir\Logs\PastPolicy_Log.txt" -Value "[$time] $msg"
 }
@@ -219,7 +219,7 @@ function Show-UrlBlocker {
         $name = $sel.Split(' ')[0]; $sid = $sel.Split('(')[1].Trim(')')
         $url = $txtUrl.Text.Trim()
         if ($url) { Set-UrlBlock $sid $name $url $false; Write-Log "Unblocked $url for $name" "Green"; Show-UrlBlocker }
-    } $script:Error
+    } $script:ErrorColor
     
     $script:y += 50
     $lbl3 = New-Object System.Windows.Forms.Label; $lbl3.Text = "Currently Blocked URLs for Selected User:"; $lbl3.AutoSize = $true; $lbl3.Location = New-Object System.Drawing.Point(0, $script:y)
@@ -270,7 +270,7 @@ function Show-PolicyManager {
         $path = "$script:gpUserPath\$sid"
         if (Test-Path $path) { Remove-Item $path -Recurse -Force; Write-Log "Deleted policy for $name" "Green" }
         else { Write-Log "No policy found for $name" "Yellow" }
-    } $script:Error
+    } $script:ErrorColor
 }
 
 # --- PAGE: STATES & RESTORE ---
