@@ -4,7 +4,7 @@ $installDir = "$env:LOCALAPPDATA\PastPolicy"
 $repoUrl = "https://github.com/you98by/PastPolicy/archive/refs/heads/main.zip"
 
 if (!(Test-Path "$installDir\src\PastPolicy-App.ps1")) {
-    Write-Host "Installing PastPolicy to $installDir..." -ForegroundColor Cyan
+    Write-Host "Installing PastPolicy App to $installDir..." -ForegroundColor Cyan
     $zipPath = "$env:TEMP\PastPolicy.zip"
     $extractPath = "$env:TEMP\PastPolicy_Extract"
     
@@ -16,7 +16,7 @@ if (!(Test-Path "$installDir\src\PastPolicy-App.ps1")) {
     Copy-Item -Path "$($sourceDir.FullName)\*" -Destination $installDir -Recurse -Force
     
     Remove-Item $zipPath, $extractPath -Recurse -Force -ErrorAction SilentlyContinue
-    Write-Host "Installation complete!" -ForegroundColor Green
+    Write-Host "Installation complete! Launching..." -ForegroundColor Green
 }
 
 # Launch the App
