@@ -1,5 +1,5 @@
 # PastPolicy Configuration File
-# Format: Display Name | Registry Key Path | Value Name | Checked Value | Unchecked Value
+# Format: Display Name | Registry Key Path | Value Name | Checked Value | Unchecked Value | Optional Category
 # Lines starting with # are ignored.
 
 Disable Task Manager | Software\Microsoft\Windows\CurrentVersion\Policies\System | DisableTaskMgr | 1 | 0
@@ -21,3 +21,18 @@ Disable Folder Options | Software\Microsoft\Windows\CurrentVersion\Policies\Expl
 Disable Search | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | NoFind | 1 | 0
 Prevent Access to Control Panel Printers | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | NoAddPrinter | 1 | 0
 Disable Changing Password | Software\Microsoft\Windows\CurrentVersion\Policies\System | NoChangingPassword | 1 | 0
+Disable Location | Software\Policies\Microsoft\Windows\LocationAndSensors | DisableLocation | 1 | 0 | Privacy
+Disable Advertising ID | Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo | Enabled | 0 | 1 | Privacy
+Disable Tailored Experiences | Software\Policies\Microsoft\Windows\CloudContent | DisableTailoredExperiencesWithDiagnosticData | 1 | 0 | Privacy
+Disable Windows Consumer Features | Software\Policies\Microsoft\Windows\CloudContent | DisableWindowsConsumerFeatures | 1 | 0 | Privacy
+Turn off AutoPlay | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | NoDriveTypeAutoRun | 255 | 0 | Security
+Disable OneDrive sync | Software\Policies\Microsoft\Windows\OneDrive | DisableFileSyncNGSC | 1 | 0 | Security
+Edge: Disable password manager | Software\Policies\Microsoft\Edge | PasswordManagerEnabled | 0 | 1 | Microsoft Edge
+Edge: Disable Autofill | Software\Policies\Microsoft\Edge | AutofillAddressEnabled | 0 | 1 | Microsoft Edge
+Edge: Disable InPrivate browsing | Software\Policies\Microsoft\Edge | InPrivateModeAvailability | 1 | 0 | Microsoft Edge
+Edge: Block pop-ups | Software\Policies\Microsoft\Edge | DefaultPopupsSetting | 2 | 0 | Microsoft Edge
+Edge: Block notifications | Software\Policies\Microsoft\Edge | DefaultNotificationsSetting | 2 | 0 | Microsoft Edge
+Edge: Block third-party cookies | Software\Policies\Microsoft\Edge | BlockThirdPartyCookies | 1 | 0 | Microsoft Edge
+Edge: Disable developer tools | Software\Policies\Microsoft\Edge | DeveloperToolsAvailability | 2 | 0 | Microsoft Edge
+Edge: Disable printing | Software\Policies\Microsoft\Edge | PrintingEnabled | 0 | 1 | Microsoft Edge
+Edge: Disable password reveal | Software\Policies\Microsoft\Edge | PasswordRevealEnabled | 0 | 1 | Microsoft Edge
