@@ -1,14 +1,21 @@
 # PastPolicy Bootstrapper
 $ErrorActionPreference = 'Stop'
+$repoUrl = "https://github.com/you98by/PastPolicy/archive/refs/heads/main.zip"
+$bootstrapUrl = 'https://raw.githubusercontent.com/you98by/PastPolicy/main/PastPolicy.ps1'
 $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = [Security.Principal.WindowsPrincipal]$currentIdentity
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Start-Process powershell.exe -Verb RunAs -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"")
+    if ($PSCommandPath) {
+        $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $PSCommandPath + '"'))
+    } else {
+        $elevatedCommand = "& ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing -Uri '$bootstrapUrl').Content))"
+        $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $elevatedCommand)
+    }
+    Start-Process powershell.exe -Verb RunAs -ArgumentList $arguments
     exit
 }
 
 $installDir = 'C:\PastPolicy'
-$repoUrl = "https://github.com/you98by/PastPolicy/archive/refs/heads/main.zip"
 
 if (!(Test-Path "$installDir\src\PastPolicy-App.ps1")) {
     Write-Host "Installing PastPolicy App to $installDir..." -ForegroundColor Cyan
