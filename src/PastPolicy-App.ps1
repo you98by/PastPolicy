@@ -154,7 +154,7 @@ function Add-ContentControl {
     $Control.Margin = New-Object Windows.Forms.Padding(0, 0, 0, 10); if ($Height -gt 0) { $Control.Height = $Height }; $Control.Dock = 'Top'; $Control.Anchor = 'Left, Top, Right'; [void]$script:content.Controls.Add($Control, 0, $row); return $Control
 }
 function New-PageTitle([string]$Text) { $label = New-Object Windows.Forms.Label; $label.Text = $Text; $label.AutoSize = $true; $label.Font = New-Object Drawing.Font('Segoe UI', 14, [Drawing.FontStyle]::Bold); $label.ForeColor = $script:Accent; [void](Add-ContentControl $label); return $label }
-function New-Button([string]$Text, [scriptblock]$Action, [Drawing.Color]$Color = $script:Accent) { $button = New-Object Windows.Forms.Button; $button.Text = $Text; $button.Width = 145; $button.Height = 35; $button.FlatStyle = 'Flat'; $button.BackColor = $Color; $button.ForeColor = [Drawing.Color]::White; $button.Font = New-Object Drawing.Font('Segoe UI', 10, [Drawing.FontStyle]::Bold); $button.Cursor = [Windows.Forms.Cursors]::Hand; [void]$button.Add_Click($Action.GetNewClosure()); return $button }
+function New-Button([string]$Text, [scriptblock]$Action, [Drawing.Color]$Color = $script:Accent) { $button = New-Object Windows.Forms.Button; $button.Text = $Text; $button.Width = 145; $button.Height = 35; $button.FlatStyle = 'Flat'; $button.BackColor = $Color; $button.ForeColor = [Drawing.Color]::White; $button.Font = New-Object Drawing.Font('Segoe UI', 10, [Drawing.FontStyle]::Bold); $button.Cursor = [Windows.Forms.Cursors]::Hand; [void]$button.Add_Click($Action); return $button }
 function Get-SelectedUser($ComboBox) { return $ComboBox.SelectedItem }
 
 function Load-CurrentState($ComboBox) {
@@ -193,6 +193,7 @@ function Show-PolicyWorkspace {
     Clear-Content; [void](New-PageTitle 'Policy Workspace')
     $userLabel = New-Object Windows.Forms.Label; $userLabel.Text = 'Target user'; $userLabel.AutoSize = $true; [void](Add-ContentControl $userLabel)
     $combo = New-Object Windows.Forms.ComboBox; $combo.DropDownStyle = 'DropDownList'; $combo.DisplayMember = 'DisplayName'; $combo.Height = 32
+    $script:workspaceCombo = $combo
     foreach ($user in @(Get-LocalUsers)) { [void]$combo.Items.Add([pscustomobject]@{ Name = $user.Name; SID = $user.SID; DisplayName = "$($user.Name) ($($user.SID))" }) }; [void](Add-ContentControl $combo)
     foreach ($category in @($script:Policies.Category | Sort-Object -Unique)) {
         $policyLabel = New-Object Windows.Forms.Label; $policyLabel.Text = $category; $policyLabel.AutoSize = $true; $policyLabel.Font = New-Object Drawing.Font('Segoe UI', 11, [Drawing.FontStyle]::Bold); $policyLabel.ForeColor = $script:Accent; [void](Add-ContentControl $policyLabel)
@@ -202,11 +203,11 @@ function Show-PolicyWorkspace {
     $urlBox = New-Object Windows.Forms.TextBox; $urlBox.Name = 'BlockedUrls'; $urlBox.Multiline = $true; $urlBox.ScrollBars = 'Vertical'; $urlBox.Height = 100; $urlBox.BackColor = $script:BtnBG; $urlBox.ForeColor = $script:Text; $urlBox.Font = New-Object Drawing.Font('Consolas', 10); [void](Add-ContentControl $urlBox)
     $browserBox = New-Object Windows.Forms.CheckBox; $browserBox.Name = 'BlockBrowsers'; $browserBox.Text = 'Block common browsers for this user (Chrome, Firefox, Brave, Opera, Vivaldi, Internet Explorer) — Edge remains allowed'; $browserBox.AutoSize = $true; $browserBox.ForeColor = $script:Text; [void](Add-ContentControl $browserBox)
     $actions = New-Object Windows.Forms.FlowLayoutPanel; $actions.AutoSize = $true; $actions.WrapContents = $false; $actions.FlowDirection = 'LeftToRight'; $actions.Dock = 'Top'
-    $apply = New-Button 'Apply Changes' { $user = Get-SelectedUser $combo; if (-not $user) { [Windows.Forms.MessageBox]::Show('Select a target user first.'); return }; try { Set-UserPolicyState $user.SID.ToString() $user.Name (Get-WorkspaceState); Write-Log "Policies applied to $($user.Name)." 'Green' } catch { Write-Log $_.Exception.Message 'Red' } }
-    $discard = New-Button 'Discard' { Load-CurrentState $combo } $script:BtnBG; $restore = New-Button 'Restore State' { Show-RestoreDialog $combo } $script:ErrorColor
+    $apply = New-Button 'Apply Changes' { $user = Get-SelectedUser $script:workspaceCombo; if (-not $user) { [Windows.Forms.MessageBox]::Show('Select a target user first.'); return }; try { Set-UserPolicyState $user.SID.ToString() $user.Name (Get-WorkspaceState); Write-Log "Policies applied to $($user.Name)." 'Green' } catch { Write-Log $_.Exception.Message 'Red' } }
+    $discard = New-Button 'Discard' { Load-CurrentState $script:workspaceCombo } $script:BtnBG; $restore = New-Button 'Restore State' { Show-RestoreDialog $script:workspaceCombo } $script:ErrorColor
     $save = New-Button 'Save Config' { Save-Configuration } $script:Success; $load = New-Button 'Load Config' { Load-Configuration } $script:BtnBG
     [void]$actions.Controls.Add($apply); [void]$actions.Controls.Add($discard); [void]$actions.Controls.Add($restore); [void]$actions.Controls.Add($save); [void]$actions.Controls.Add($load); [void](Add-ContentControl $actions)
-    [void]$combo.Add_SelectedIndexChanged(({ Load-CurrentState $combo }.GetNewClosure())); if ($combo.Items.Count -gt 0) { $combo.SelectedIndex = 0; Load-CurrentState $combo }
+    [void]$combo.Add_SelectedIndexChanged({ Load-CurrentState $this }); if ($combo.Items.Count -gt 0) { $combo.SelectedIndex = 0; Load-CurrentState $combo }
 }
 
 function Show-RestoreDialog($ComboBox) {
@@ -242,7 +243,7 @@ function Show-Presets {
 function Show-EdgeTemplates {
     Clear-Content; [void](New-PageTitle 'Microsoft Edge ADMX templates')
     $info = New-Object Windows.Forms.Label; $info.Text = 'Edge registry policies in PastPolicy work immediately. Download the official ADMX/ADML files if you also want the Edge settings to appear in Local Group Policy Editor. Extract the policy files and copy msedge.admx plus its matching language folder to C:\Windows\PolicyDefinitions.'; $info.AutoSize = $true; $info.MaximumSize = New-Object Drawing.Size(700, 0); [void](Add-ContentControl $info)
-    $download = New-Button 'Open official Edge download' { Start-Process 'https://www.microsoft.com/en-us/edge/business/download' } $script:Accent; [void](Add-ContentControl $download)
+    $download = New-Button 'Install Edge policy templates' { $installer = Join-Path $PSScriptRoot '..\Install-EdgePolicyTemplates.ps1'; if (Test-Path -LiteralPath $installer) { Start-Process powershell.exe -Verb RunAs -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $installer + '"')) } else { Write-Log 'Edge policy installer was not found.' 'Red' } } $script:Accent; [void](Add-ContentControl $download)
 }
 
 function New-NavigationButton([string]$Text, [scriptblock]$Action) { $button = New-Object Windows.Forms.Button; $button.Text = $Text; $button.Width = 190; $button.Height = 42; $button.Margin = New-Object Windows.Forms.Padding(0, 0, 0, 8); $button.TextAlign = 'MiddleLeft'; $button.Padding = New-Object Windows.Forms.Padding(15, 0, 0, 0); $button.FlatStyle = 'Flat'; $button.BackColor = $script:BtnBG; $button.ForeColor = $script:Text; [void]$button.Add_Click($Action); [void]$nav.Controls.Add($button) }
