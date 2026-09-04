@@ -245,7 +245,7 @@ function Show-EdgeTemplates {
     $download = New-Button 'Open official Edge download' { Start-Process 'https://www.microsoft.com/en-us/edge/business/download' } $script:Accent; [void](Add-ContentControl $download)
 }
 
-function New-NavigationButton([string]$Text, [scriptblock]$Action) { $button = New-Object Windows.Forms.Button; $button.Text = $Text; $button.Width = 190; $button.Height = 42; $button.Margin = New-Object Windows.Forms.Padding(0, 0, 0, 8); $button.TextAlign = 'MiddleLeft'; $button.Padding = New-Object Windows.Forms.Padding(15, 0, 0, 0); $button.FlatStyle = 'Flat'; $button.BackColor = $script:BtnBG; $button.ForeColor = $script:Text; [void]$button.Add_Click($Action.GetNewClosure()); [void]$nav.Controls.Add($button) }
+function New-NavigationButton([string]$Text, [scriptblock]$Action) { $button = New-Object Windows.Forms.Button; $button.Text = $Text; $button.Width = 190; $button.Height = 42; $button.Margin = New-Object Windows.Forms.Padding(0, 0, 0, 8); $button.TextAlign = 'MiddleLeft'; $button.Padding = New-Object Windows.Forms.Padding(15, 0, 0, 0); $button.FlatStyle = 'Flat'; $button.BackColor = $script:BtnBG; $button.ForeColor = $script:Text; [void]$button.Add_Click($Action); [void]$nav.Controls.Add($button) }
 New-NavigationButton 'Dashboard' { Show-Dashboard }; New-NavigationButton 'Policy Workspace' { Show-PolicyWorkspace }; New-NavigationButton 'Scenario Presets' { Show-Presets }; New-NavigationButton 'Edge ADMX Templates' { Show-EdgeTemplates }; New-NavigationButton 'View Backups' { Show-States }; New-NavigationButton 'View Logs' { Show-Logs }
 
 Write-Log "PastPolicy started. Loaded $($script:Policies.Count) policies." 'Green'
