@@ -12,35 +12,48 @@ if (-not $isAdmin) {
 $script:workDir = "C:\PastPolicy"
 $script:assetsDir = "$PSScriptRoot\..\assets"
 $script:gpUserPath = "C:\Windows\System32\GroupPolicyUsers"
+$script:policiesFile = "$PSScriptRoot\..\policies.txt"
 
 @("$script:workDir\Logs", "$script:workDir\States") | ForEach-Object {
-    if (!(Test-Path $_)) { New-Item -ItemType Directory -Path $_ -Force | Out-Null }
+    if (!(Test-Path $_)) { [void](New-Item -ItemType Directory -Path $_ -Force) }
 }
 
 Add-Type -AssemblyName System.Windows.Forms
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
 # ==========================================
-# 2. THEME & POLICY DEFINITIONS
+# 2. THEME & DYNAMIC POLICIES
 # ==========================================
 $script:BG = [System.Drawing.ColorTranslator]::FromHtml("#1E1E1E")
 $script:SidebarBG = [System.Drawing.ColorTranslator]::FromHtml("#252526")
 $script:Text = [System.Drawing.ColorTranslator]::FromHtml("#CCCCCC")
 $script:Accent = [System.Drawing.ColorTranslator]::FromHtml("#007ACC")
 $script:BtnBG = [System.Drawing.ColorTranslator]::FromHtml("#333333")
-$script:ErrorColor = [System.Drawing.ColorTranslator]::FromHtml("#F44747") # FIXED VARIABLE NAME
+$script:ErrorColor = [System.Drawing.ColorTranslator]::FromHtml("#F44747")
 $script:Success = [System.Drawing.ColorTranslator]::FromHtml("#4EC9B0")
 
-# Define the policies we can toggle via checkboxes
-$script:Policies = @(
-    @{ Name = "Disable Task Manager"; Key = "Software\Microsoft\Windows\CurrentVersion\Policies\System"; ValueName = "DisableTaskMgr"; Checked = 1; Unchecked = 0 },
-    @{ Name = "Disable Registry Editor"; Key = "Software\Microsoft\Windows\CurrentVersion\Policies\System"; ValueName = "DisableRegistryTools"; Checked = 1; Unchecked = 0 },
-    @{ Name = "Disable Command Prompt"; Key = "Software\Microsoft\Windows\CurrentVersion\Policies\System"; ValueName = "DisableCMD"; Checked = 2; Unchecked = 0 },
-    @{ Name = "Disable Control Panel"; Key = "Software\Microsoft\Windows\CurrentVersion\Policies\Explorer"; ValueName = "NoControlPanel"; Checked = 1; Unchecked = 0 }
-)
+# Load policies from the text file dynamically
+$script:Policies = @()
+if (Test-Path $script:policiesFile) {
+    Get-Content $script:policiesFile | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -and $line -notmatch '^#') {
+            $parts = $line -split '\|'
+            if ($parts.Count -eq 5) {
+                $script:Policies += @{
+                    Name = $parts[0].Trim()
+                    Key = $parts[1].Trim()
+                    ValueName = $parts[2].Trim()
+                    Checked = $parts[3].Trim()
+                    Unchecked = $parts[4].Trim()
+                }
+            }
+        }
+    }
+}
 
 # ==========================================
-# 3. MAIN GUI LAYOUT
+# 3. MAIN GUI LAYOUT (FIXED OVERLAPPING)
 # ==========================================
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "PastPolicy - Ultimate Policy Manager"
@@ -50,25 +63,41 @@ $form.BackColor = $script:BG
 $form.ForeColor = $script:Text
 $form.Font = New-Object System.Drawing.Font("Segoe UI", 10)
 
+# Sidebar
 $sidebar = New-Object System.Windows.Forms.Panel
-$sidebar.Dock = "Left"; $sidebar.Width = 220; $sidebar.BackColor = $script:SidebarBG
-$form.Controls.Add($sidebar)
+$sidebar.Dock = [System.Windows.Forms.DockStyle]::Left
+$sidebar.Width = 220
+$sidebar.BackColor = $script:SidebarBG
+[void]$form.Controls.Add($sidebar)
 
 $lblTitle = New-Object System.Windows.Forms.Label
-$lblTitle.Text = "PastPolicy"; $lblTitle.Font = New-Object System.Drawing.Font("Segoe UI", 18, [System.Drawing.FontStyle]::Bold)
-$lblTitle.ForeColor = $script:Accent; $lblTitle.AutoSize = $true; $lblTitle.Location = New-Object System.Drawing.Point(20, 25)
-$sidebar.Controls.Add($lblTitle)
+$lblTitle.Text = "PastPolicy"
+$lblTitle.Font = New-Object System.Drawing.Font("Segoe UI", 18, [System.Drawing.FontStyle]::Bold)
+$lblTitle.ForeColor = $script:Accent
+$lblTitle.AutoSize = $true
+$lblTitle.Location = New-Object System.Drawing.Point(20, 25)
+[void]$sidebar.Controls.Add($lblTitle)
 
-$logBox = New-Object System.Windows.Forms.TextBox
-$logBox.Multiline = $true; $logBox.ReadOnly = $true; $logBox.Dock = "Bottom"; $logBox.Height = 150
-$logBox.BackColor = $script:BG; $logBox.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#D4D4D4")
-$logBox.Font = New-Object System.Drawing.Font("Consolas", 10); $logBox.ScrollBars = "Vertical"; $logBox.BorderStyle = "None"
-$form.Controls.Add($logBox)
+# Log Box (FIXED: Changed to RichTextBox for color support)
+$logBox = New-Object System.Windows.Forms.RichTextBox
+$logBox.Multiline = $true
+$logBox.ReadOnly = $true
+$logBox.Dock = [System.Windows.Forms.DockStyle]::Bottom
+$logBox.Height = 150
+$logBox.BackColor = $script:BG
+$logBox.ForeColor = [System.Drawing.ColorTranslator]::FromHtml("#D4D4D4")
+$logBox.Font = New-Object System.Drawing.Font("Consolas", 10)
+$logBox.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
+$logBox.BorderStyle = "None"
+[void]$form.Controls.Add($logBox)
 
+# Main Panel
 $mainPanel = New-Object System.Windows.Forms.Panel
-$mainPanel.Dock = "Fill"; $mainPanel.BackColor = $script:BG; $mainPanel.Padding = New-Object System.Windows.Forms.Padding(30)
-$mainPanel.AutoScroll = $true # FIX: Prevents overlapping by adding a scrollbar if content is too long
-$form.Controls.Add($mainPanel)
+$mainPanel.Dock = [System.Windows.Forms.DockStyle]::Fill
+$mainPanel.BackColor = $script:BG
+$mainPanel.Padding = New-Object System.Windows.Forms.Padding(30)
+$mainPanel.AutoScroll = $true
+[void]$form.Controls.Add($mainPanel)
 
 # ==========================================
 # 4. HELPER & REGISTRY FUNCTIONS
@@ -76,7 +105,8 @@ $form.Controls.Add($mainPanel)
 function Write-Log($msg, $color = "White") {
     $time = Get-Date -Format "HH:mm:ss"
     $logBox.SelectionColor = switch ($color) { "Red" { $script:ErrorColor }; "Green" { $script:Success }; "Yellow" { "Yellow" } default { $script:Text } }
-    $logBox.AppendText("[$time] $msg`r`n"); $logBox.ScrollToCaret()
+    $logBox.AppendText("[$time] $msg`r`n")
+    $logBox.ScrollToCaret()
     Add-Content -Path "$script:workDir\Logs\PastPolicy_Log.txt" -Value "[$time] $msg"
 }
 
@@ -84,13 +114,24 @@ function Get-LocalUsers {
     Get-LocalUser | Where-Object { $_.Enabled -eq $true -and $_.Name -notin @('DefaultAccount', 'Guest', 'WDAGUtilityAccount') }
 }
 
+$script:LoadedHives = @()
 function Load-UserHive($sid, $username) {
     $hive = "HKU\$sid"
-    $ntuser = "C:\Users\$username\NTUSER.DAT"
-    if (!(Test-Path "Registry::$hive") -and (Test-Path $ntuser)) { reg load $hive $ntuser 2>$null }
+    if (!(Test-Path "Registry::$hive")) {
+        $ntuser = "C:\Users\$username\NTUSER.DAT"
+        if (Test-Path $ntuser) { 
+            reg load $hive $ntuser 2>$null
+            $script:LoadedHives += $sid
+        }
+    }
 }
 
-function Unload-UserHive($sid) { reg unload "HKU\$sid" 2>$null }
+function Unload-UserHive($sid) { 
+    if ($script:LoadedHives -contains $sid) {
+        reg unload "HKU\$sid" 2>$null
+        $script:LoadedHives = $script:LoadedHives | Where-Object { $_ -ne $sid }
+    }
+}
 
 function Get-UserPolicyState($sid, $username) {
     Load-UserHive $sid $username
@@ -98,7 +139,8 @@ function Get-UserPolicyState($sid, $username) {
     foreach ($pol in $script:Policies) {
         $path = "Registry::HKEY_USERS\$sid\$($pol.Key)"
         $val = Get-ItemProperty -Path $path -Name $pol.ValueName -ErrorAction SilentlyContinue
-        $state[$pol.Name] = ($val.($pol.ValueName) -eq $pol.Checked)
+        $currentVal = $val.($pol.ValueName)
+        $state[$pol.Name] = ($currentVal -eq $pol.Checked -or $currentVal -eq [int]$pol.Checked)
     }
     $urlPath = "Registry::HKEY_USERS\$sid\Software\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Domains"
     $urls = @()
@@ -117,7 +159,7 @@ function Set-UserPolicyState($sid, $username, $state) {
     Load-UserHive $sid $username
     foreach ($pol in $script:Policies) {
         $path = "Registry::HKEY_USERS\$sid\$($pol.Key)"
-        if (!(Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
+        if (!(Test-Path $path)) { [void](New-Item -Path $path -Force) }
         $val = if ($state[$pol.Name]) { $pol.Checked } else { $pol.Unchecked }
         Set-ItemProperty -Path $path -Name $pol.ValueName -Value $val -Type DWORD -Force
     }
@@ -126,7 +168,7 @@ function Set-UserPolicyState($sid, $username, $state) {
     foreach ($url in $state["BlockedURLs"]) {
         if ($url.Trim()) {
             $urlPath = "$urlBase\$($url.Trim())"
-            New-Item -Path $urlPath -Force | Out-Null
+            [void](New-Item -Path $urlPath -Force)
             Set-ItemProperty -Path $urlPath -Name "*" -Value 4 -Type DWORD -Force
         }
     }
@@ -134,16 +176,14 @@ function Set-UserPolicyState($sid, $username, $state) {
 }
 
 # ==========================================
-# 5. AUTO BACKUP (Now includes JSON Snapshot)
+# 5. AUTO BACKUP
 # ==========================================
 function Invoke-AutoBackup {
     $backupDir = "$script:workDir\States\AutoBackup_$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss')"
-    New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
-    
+    [void](New-Item -ItemType Directory -Path $backupDir -Force)
     if (Test-Path $script:gpUserPath) {
         Copy-Item $script:gpUserPath -Destination "$backupDir\GroupPolicyUsers" -Recurse -Force -ErrorAction SilentlyContinue
     }
-    
     $snapshot = @{}
     Get-LocalUsers | ForEach-Object {
         $snapshot[$_.Name] = Get-UserPolicyState $_.SID $_.Name
@@ -153,44 +193,46 @@ function Invoke-AutoBackup {
 }
 
 # ==========================================
-# 6. UI BUILDERS
+# 6. UI BUILDERS (FIXED OVERLAPPING & PIPELINE LEAKS)
 # ==========================================
 function Clear-Main { 
-    $mainPanel.Controls.Clear()
-    $script:y = 0 
+    [void]$mainPanel.Controls.Clear()
+    $script:mainY = 0 
+    $script:mainX = 0
     $script:CheckBoxes = @{}
 }
 
 function Add-Title($text) {
     $lbl = New-Object System.Windows.Forms.Label; $lbl.Text = $text
     $lbl.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
-    $lbl.ForeColor = $script:Accent; $lbl.AutoSize = $true; $lbl.Location = New-Object System.Drawing.Point(0, $script:y)
-    $mainPanel.Controls.Add($lbl); $script:y += 40
+    $lbl.ForeColor = $script:Accent; $lbl.AutoSize = $true; $lbl.Location = New-Object System.Drawing.Point(0, $script:mainY)
+    [void]$mainPanel.Controls.Add($lbl); $script:mainY += 40
 }
 
 function Add-UserDropdown() {
-    $lbl = New-Object System.Windows.Forms.Label; $lbl.Text = "Target User:"; $lbl.AutoSize = $true; $lbl.Location = New-Object System.Drawing.Point(0, $script:y)
-    $mainPanel.Controls.Add($lbl); $script:y += 25
+    $lbl = New-Object System.Windows.Forms.Label; $lbl.Text = "Target User:"; $lbl.AutoSize = $true; $lbl.Location = New-Object System.Drawing.Point(0, $script:mainY)
+    [void]$mainPanel.Controls.Add($lbl); $script:mainY += 25
     
     $cmb = New-Object System.Windows.Forms.ComboBox; $cmb.Name = "UserCombo"
     $cmb.DropDownStyle = "DropDownList"; $cmb.Font = New-Object System.Drawing.Font("Segoe UI", 11)
-    $cmb.Location = New-Object System.Drawing.Point(0, $script:y); $cmb.Size = New-Object System.Drawing.Size(350, 30)
+    $cmb.Location = New-Object System.Drawing.Point(0, $script:mainY); $cmb.Size = New-Object System.Drawing.Size(350, 30)
     $cmb.BackColor = $script:BtnBG; $cmb.ForeColor = $script:Text; $cmb.FlatStyle = "Flat"
-    Get-LocalUsers | ForEach-Object { $cmb.Items.Add("$($_.Name) ($($_.SID))") }
+    # FIX: Added [void] to prevent returning integers to the pipeline
+    Get-LocalUsers | ForEach-Object { [void]$cmb.Items.Add("$($_.Name) ($($_.SID))") }
     if ($cmb.Items.Count -gt 0) { $cmb.SelectedIndex = 0 }
-    $mainPanel.Controls.Add($cmb); $script:y += 45
+    [void]$mainPanel.Controls.Add($cmb); $script:mainY += 45
     return $cmb
 }
 
 function Add-Button($text, $action, $color = $script:Accent, $width = 140) {
     $btn = New-Object System.Windows.Forms.Button; $btn.Text = $text
-    $btn.Size = New-Object System.Drawing.Size($width, 35); $btn.Location = New-Object System.Drawing.Point($script:xOffset, $script:y)
+    $btn.Size = New-Object System.Drawing.Size($width, 35); $btn.Location = New-Object System.Drawing.Point($script:mainX, $script:mainY)
     $btn.FlatStyle = "Flat"; $btn.BackColor = $color; $btn.ForeColor = "White"
     $btn.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
     $btn.Cursor = [System.Windows.Forms.Cursors]::Hand
     $btn.Add_Click($action)
-    $mainPanel.Controls.Add($btn)
-    $script:xOffset += ($width + 15)
+    [void]$mainPanel.Controls.Add($btn)
+    $script:mainX += ($width + 15)
     return $btn
 }
 
@@ -200,39 +242,39 @@ function Add-Button($text, $action, $color = $script:Accent, $width = 140) {
 function Show-Dashboard {
     Clear-Main; Add-Title "Dashboard"
     $info = New-Object System.Windows.Forms.Label
-    $info.Text = "Welcome to PastPolicy.`n`nWorkspace: $script:workDir`nAuto-Backup: Enabled on Launch`n`nUse the 'Policy Workspace' to manage users, block URLs, or deploy policies.`nChanges are applied directly to the user's registry hive instantly."
-    $info.Font = New-Object System.Drawing.Font("Segoe UI", 12); $info.AutoSize = $true; $info.Location = New-Object System.Drawing.Point(0, $script:y)
-    $mainPanel.Controls.Add($info)
+    $info.Text = "Welcome to PastPolicy.`n`nWorkspace: $script:workDir`nPolicies Loaded: $($script:Policies.Count)`n`nUse the 'Policy Workspace' to manage users, block URLs, or deploy policies.`nChanges are applied directly to the user's registry hive instantly."
+    $info.Font = New-Object System.Drawing.Font("Segoe UI", 12); $info.AutoSize = $true; $info.Location = New-Object System.Drawing.Point(0, $script:mainY)
+    [void]$mainPanel.Controls.Add($info)
 }
 
 function Show-PolicyWorkspace {
     Clear-Main; Add-Title "Policy Workspace"
     $cmb = Add-UserDropdown
     
-    $script:y += 10
+    $script:mainY += 10
     $lblPol = New-Object System.Windows.Forms.Label; $lblPol.Text = "System Policies:"; $lblPol.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
-    $lblPol.AutoSize = $true; $lblPol.Location = New-Object System.Drawing.Point(0, $script:y); $mainPanel.Controls.Add($lblPol); $script:y += 30
+    $lblPol.AutoSize = $true; $lblPol.Location = New-Object System.Drawing.Point(0, $script:mainY); [void]$mainPanel.Controls.Add($lblPol); $script:mainY += 30
     
     foreach ($pol in $script:Policies) {
         $cb = New-Object System.Windows.Forms.CheckBox; $cb.Text = $pol.Name
-        $cb.Location = New-Object System.Drawing.Point(10, $script:y); $cb.AutoSize = $true
+        $cb.Location = New-Object System.Drawing.Point(10, $script:mainY); $cb.AutoSize = $true
         $cb.ForeColor = $script:Text; $cb.Font = New-Object System.Drawing.Font("Segoe UI", 10)
-        $mainPanel.Controls.Add($cb)
+        [void]$mainPanel.Controls.Add($cb)
         $script:CheckBoxes[$pol.Name] = $cb
-        $script:y += 30
+        $script:mainY += 30
     }
     
-    $script:y += 15
+    $script:mainY += 15
     $lblUrls = New-Object System.Windows.Forms.Label; $lblUrls.Text = "Blocked Websites (One per line):"; $lblUrls.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
-    $lblUrls.AutoSize = $true; $lblUrls.Location = New-Object System.Drawing.Point(0, $script:y); $mainPanel.Controls.Add($lblUrls); $script:y += 30
+    $lblUrls.AutoSize = $true; $lblUrls.Location = New-Object System.Drawing.Point(0, $script:mainY); [void]$mainPanel.Controls.Add($lblUrls); $script:mainY += 30
     
     $txtUrls = New-Object System.Windows.Forms.TextBox; $txtUrls.Name = "TxtUrls"
-    $txtUrls.Multiline = $true; $txtUrls.Location = New-Object System.Drawing.Point(10, $script:y)
+    $txtUrls.Multiline = $true; $txtUrls.Location = New-Object System.Drawing.Point(10, $script:mainY)
     $txtUrls.Size = New-Object System.Drawing.Size(400, 100); $txtUrls.BackColor = $script:BtnBG; $txtUrls.ForeColor = $script:Text
     $txtUrls.Font = New-Object System.Drawing.Font("Consolas", 10)
-    $mainPanel.Controls.Add($txtUrls); $script:y += 120
+    [void]$mainPanel.Controls.Add($txtUrls); $script:mainY += 120
     
-    $script:y += 20; $script:xOffset = 0
+    $script:mainY += 20; $script:mainX = 0
     Add-Button "Apply Changes" {
         $sel = $cmb.SelectedItem; if (!$sel) { return }
         $name = $sel.Split(' ')[0]; $sid = $sel.Split('(')[1].Trim(')')
@@ -251,8 +293,8 @@ function Show-PolicyWorkspace {
         Show-RestoreDialog $cmb
     } $script:ErrorColor
     
-    # Load initial state when user is selected
-    $cmb.Add_SelectedIndexChanged({ Load-CurrentState $this })
+    # FIX: Added [void] to event handler
+    [void]$cmb.Add_SelectedIndexChanged({ Load-CurrentState $this })
     if ($cmb.Items.Count -gt 0) { Load-CurrentState $cmb }
 }
 
@@ -281,12 +323,12 @@ function Show-RestoreDialog($cmb) {
     $formRestore.StartPosition = "CenterScreen"; $formRestore.BackColor = $script:BG; $formRestore.ForeColor = $script:Text
     
     $lbl = New-Object System.Windows.Forms.Label; $lbl.Text = "Select Backup for $name :"; $lbl.AutoSize = $true; $lbl.Location = New-Object System.Drawing.Point(20, 20)
-    $formRestore.Controls.Add($lbl)
+    [void]$formRestore.Controls.Add($lbl)
     
     $lst = New-Object System.Windows.Forms.ListBox; $lst.Location = New-Object System.Drawing.Point(20, 50)
     $lst.Size = New-Object System.Drawing.Size(340, 150); $lst.BackColor = $script:BtnBG; $lst.ForeColor = $script:Text
-    $backups | ForEach-Object { $lst.Items.Add($_.Name) }
-    $formRestore.Controls.Add($lst)
+    $backups | ForEach-Object { [void]$lst.Items.Add($_.Name) }
+    [void]$formRestore.Controls.Add($lst)
     
     $btnOk = New-Object System.Windows.Forms.Button; $btnOk.Text = "Restore"; $btnOk.Size = New-Object System.Drawing.Size(100, 30)
     $btnOk.Location = New-Object System.Drawing.Point(260, 210); $btnOk.FlatStyle = "Flat"; $btnOk.BackColor = $script:Accent; $btnOk.ForeColor = "White"
@@ -298,9 +340,7 @@ function Show-RestoreDialog($cmb) {
                 if ($snapshot.PSObject.Properties.Name -contains $name) {
                     $state = @{}
                     $userState = $snapshot.$name
-                    foreach ($pol in $script:Policies) {
-                        $state[$pol.Name] = $userState.($pol.Name)
-                    }
+                    foreach ($pol in $script:Policies) { $state[$pol.Name] = $userState.($pol.Name) }
                     $state["BlockedURLs"] = @($userState.BlockedURLs)
                     Set-UserPolicyState $sid $name $state
                     Write-Log "Restored state for $name from $($lst.SelectedItem)." "Green"
@@ -310,19 +350,19 @@ function Show-RestoreDialog($cmb) {
             $formRestore.Close()
         }
     })
-    $formRestore.Controls.Add($btnOk)
+    [void]$formRestore.Controls.Add($btnOk)
     [void]$formRestore.ShowDialog()
 }
 
 function Show-States {
     Clear-Main; Add-Title "States & Backups"
-    $lbl = New-Object System.Windows.Forms.Label; $lbl.Text = "All system backups are stored in: $script:workDir\States"; $lbl.AutoSize = $true; $lbl.Location = New-Object System.Drawing.Point(0, $script:y)
-    $mainPanel.Controls.Add($lbl); $script:y += 30
+    $lbl = New-Object System.Windows.Forms.Label; $lbl.Text = "All system backups are stored in: $script:workDir\States"; $lbl.AutoSize = $true; $lbl.Location = New-Object System.Drawing.Point(0, $script:mainY)
+    [void]$mainPanel.Controls.Add($lbl); $script:mainY += 30
     
-    $listBox = New-Object System.Windows.Forms.ListBox; $listBox.Location = New-Object System.Drawing.Point(0, $script:y)
+    $listBox = New-Object System.Windows.Forms.ListBox; $listBox.Location = New-Object System.Drawing.Point(0, $script:mainY)
     $listBox.Size = New-Object System.Drawing.Size(500, 300); $listBox.BackColor = $script:BtnBG; $listBox.ForeColor = $script:Text
-    Get-ChildItem "$script:workDir\States" -Directory | Sort-Object Name -Descending | ForEach-Object { $listBox.Items.Add($_.Name) }
-    $mainPanel.Controls.Add($listBox)
+    Get-ChildItem "$script:workDir\States" -Directory | Sort-Object Name -Descending | ForEach-Object { [void]$listBox.Items.Add($_.Name) }
+    [void]$mainPanel.Controls.Add($listBox)
 }
 
 function Show-Logs {
@@ -332,25 +372,25 @@ function Show-Logs {
     $txtLog.BackColor = $script:BG; $txtLog.ForeColor = $script:Text; $txtLog.Font = New-Object System.Drawing.Font("Consolas", 10)
     $txtLog.ScrollBars = "Vertical"
     if (Test-Path "$script:workDir\Logs\PastPolicy_Log.txt") { $txtLog.Text = Get-Content "$script:workDir\Logs\PastPolicy_Log.txt" -Raw }
-    $mainPanel.Controls.Add($txtLog)
+    [void]$mainPanel.Controls.Add($txtLog)
 }
 
 # ==========================================
-# 8. SIDEBAR NAVIGATION
+# 8. SIDEBAR NAVIGATION (FIXED OVERLAPPING)
 # ==========================================
 function New-SideButton($text, $action) {
     $btn = New-Object System.Windows.Forms.Button; $btn.Text = $text
-    $btn.Size = New-Object System.Drawing.Size(200, 45); $btn.Location = New-Object System.Drawing.Point(10, $script:y)
+    $btn.Size = New-Object System.Drawing.Size(200, 45); $btn.Location = New-Object System.Drawing.Point(10, $script:sidebarY)
     $btn.FlatStyle = "Flat"; $btn.BackColor = $script:BtnBG; $btn.ForeColor = $script:Text
     $btn.Font = New-Object System.Drawing.Font("Segoe UI", 10); $btn.TextAlign = "MiddleLeft"
     $btn.Padding = New-Object System.Windows.Forms.Padding(15, 0, 0, 0); $btn.Cursor = [System.Windows.Forms.Cursors]::Hand
     $btn.Add_MouseEnter({ $this.BackColor = [System.Drawing.ColorTranslator]::FromHtml("#444444") })
     $btn.Add_MouseLeave({ $this.BackColor = $script:BtnBG })
     $btn.Add_Click($action)
-    $sidebar.Controls.Add($btn); $script:y += 55
+    [void]$sidebar.Controls.Add($btn); $script:sidebarY += 55
 }
 
-$script:y = 90
+$script:sidebarY = 90
 New-SideButton "  Dashboard"       { Show-Dashboard }
 New-SideButton "  Policy Workspace" { Show-PolicyWorkspace }
 New-SideButton "  View Backups"    { Show-States }
@@ -359,9 +399,10 @@ New-SideButton "  View Logs"       { Show-Logs }
 # ==========================================
 # 9. LAUNCH
 # ==========================================
-Write-Log "PastPolicy v6.0 Ultimate Started." "Green"
+Write-Log "PastPolicy v7.0 Ultimate Started." "Green"
+Write-Log "Loaded $($script:Policies.Count) policies from policies.txt." "Green"
 Invoke-AutoBackup
 Show-Dashboard
 
-$form.Add_Shown({ $form.Activate() })
+[void]$form.Add_Shown({ $form.Activate() })
 [void]$form.ShowDialog()
