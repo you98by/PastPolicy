@@ -8,3 +8,16 @@ Disable Command Prompt | Software\Microsoft\Windows\CurrentVersion\Policies\Syst
 Disable Control Panel | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | NoControlPanel | 1 | 0
 Hide C: Drive | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | NoDrives | 4 | 0
 Disable Taskbar Context Menu | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | NoTrayContextMenu | 1 | 0
+Disable Run Command | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | NoRun | 1 | 0
+Hide Recent Documents | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | NoRecentDocsHistory | 1 | 0
+Clear Recent Documents on Exit | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | ClearRecentDocsOnExit | 1 | 0
+Prevent Changes to Desktop Background | Software\Microsoft\Windows\CurrentVersion\Policies\ActiveDesktop | NoChangingWallPaper | 1 | 0
+Disable Changing the Desktop Theme | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | NoThemesTab | 1 | 0
+Disable Changing Display Settings | Software\Microsoft\Windows\CurrentVersion\Policies\System | NoDispSettingsPage | 1 | 0
+Disable Changing Mouse Settings | Software\Microsoft\Windows\CurrentVersion\Policies\System | NoDispCPL | 1 | 0
+Disable Windows Installer | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | DisableMSI | 2 | 0
+Disable Taskbar Settings | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | NoSetTaskbar | 1 | 0
+Disable Folder Options | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | NoFolderOptions | 1 | 0
+Disable Search | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | NoFind | 1 | 0
+Prevent Access to Control Panel Printers | Software\Microsoft\Windows\CurrentVersion\Policies\Explorer | NoAddPrinter | 1 | 0
+Disable Changing Password | Software\Microsoft\Windows\CurrentVersion\Policies\System | NoChangingPassword | 1 | 0
